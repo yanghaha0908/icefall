@@ -1,0 +1,54 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: 当前文件",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--exp-dir","egs/librispeech/ASR/conformer_ctc/exp",
+                "--lang-dir","/data/icefall_librispeech/data/lang_bpe_500",
+                "--full-libri","1",
+                "--num-epochs","1",
+                "--world-size","1",
+                "--manifest-dir","/data/icefall_librispeech/data/fbank"
+            ],
+            "env":{
+                "CUDA_VISIBLE_DEVICES":"6",
+               "HYDRA_FULL_ERROR":"1",
+               "PYTHONPATH":"/mnt/lustre/sjtu/home/gry10/icefall:$PYTHONPATH",
+            },
+            "justMyCode": true
+        },
+        {
+            "name": "Python: 当前文件2",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--exp-dir","egs/librispeech/ASR/mega_ctc/exp",
+                "--lang-dir","/data/icefall_librispeech/data/lang_bpe_500",
+                "--full-libri","1",
+                "--num-epochs","1",
+                "--world-size","1",
+                "--manifest-dir","/data/icefall_librispeech/data/fbank",
+                "--embedding_dim","512",
+                "--hidden_dim","512",
+                "--ffn_hidden_dim","512",
+            ],
+            "env":{
+                "CUDA_VISIBLE_DEVICES":"6",
+               "HYDRA_FULL_ERROR":"1",
+               "PYTHONPATH":"/mnt/lustre/sjtu/home/gry10/icefall:$PYTHONPATH",
+            },
+            "justMyCode": true
+        },        
+        
+    ]
+}

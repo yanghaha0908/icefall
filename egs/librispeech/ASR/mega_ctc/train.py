@@ -34,12 +34,20 @@ from pathlib import Path
 from shutil import copyfile
 from typing import Optional, Tuple
 
+ 
 import k2
 import torch
 import torch.multiprocessing as mp
 import torch.nn as nn
+
+# import sys
+# sys.path.append('../conformer_ctc/')
+# import asr
 from asr_datamodule import LibriSpeechAsrDataModule
-from conformer import Conformer
+
+
+# from conformer import Conformer
+from mega import MegaLRAEncoder
 from lhotse.cut import Cut
 from lhotse.utils import fix_random_seed
 from torch import Tensor
@@ -159,6 +167,27 @@ def get_parser():
         help="The seed for random generators intended for reproducibility",
     )
 
+    parser.add_argument(
+        "--embedding_dim",
+        type=int,
+        default=768,
+        help="The seed for random generators intended for reproducibility",
+    )
+
+    parser.add_argument(
+        "--hidden_dim",
+        type=int,
+        default=384,
+        help="The seed for random generators intended for reproducibility",
+    )
+    
+    parser.add_argument(
+        "--ffn_hidden_dim",
+        type=int,
+        default=768,
+        help="The seed for random generators intended for reproducibility",
+    )
+            
     return parser
 
 
@@ -233,16 +262,32 @@ def get_params() -> AttributeDict:
             "log_interval": 50,
             "reset_interval": 200,
             "valid_interval": 3000,
-            # parameters for conformer
+            
+            # parameters for mega
+            "num_encoder_layers":12,
+            
+            "embedding_dim":768, #?
+            "hidden_dim":384,       #syk
+            "ffn_hidden_dim":768,      #syk
+
+            "z_dim":192,  #syk
+            "n_dim":24,  #syk
+            
+            "chunk_size":-1,  #syk 短序列分块没啥用
+            "max_seq_len":1024,
+                           
+            # parameters for conformer  为了初始化transformer
             "feature_dim": 80,
             "subsampling_factor": 4,
             "use_feat_batchnorm": True,
             "attention_dim": 512,
             "nhead": 8,
+            
             # parameters for loss
             "beam_size": 10,
             "reduction": "sum",
             "use_double_scores": True,
+            
             # parameters for Noam
             "weight_decay": 1e-6,
             "warm_step": 80000,
@@ -657,7 +702,28 @@ def run(rank, world_size, args):
         )
 
     logging.info("About to create model")
-    model = Conformer(
+    # model = Conformer(
+    #     num_features=params.feature_dim,
+    #     nhead=params.nhead,
+    #     d_model=params.attention_dim,
+    #     num_classes=num_classes,
+    #     subsampling_factor=params.subsampling_factor,
+    #     num_decoder_layers=params.num_decoder_layers,
+    #     vgg_frontend=False,
+    #     use_feat_batchnorm=params.use_feat_batchnorm,
+    # )
+    
+    model = MegaLRAEncoder(
+        num_encoder_layers=params.num_encoder_layers,
+        embedding_dim=params.embedding_dim,
+        hidden_dim= params.hidden_dim,
+        ffn_hidden_dim = params.ffn_hidden_dim,
+        z_dim = params.z_dim,
+        n_dim = params.n_dim ,
+        chunk_size= params.chunk_size,
+        max_seq_len = params.max_seq_len,
+        
+        # 为了初始化transformer
         num_features=params.feature_dim, 
         nhead=params.nhead,
         d_model=params.attention_dim,
@@ -672,7 +738,8 @@ def run(rank, world_size, args):
 
     model.to(device)
     if world_size > 1:
-        model = DDP(model, device_ids=[rank])
+        #model = DDP(model, device_ids=[rank])
+        model = DDP(model, device_ids=[rank],find_unused_parameters=True)
 
     optimizer = Noam(
         model.parameters(),

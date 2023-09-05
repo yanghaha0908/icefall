@@ -61,7 +61,7 @@ class Conv2dSubsampling(nn.Module):
         """
         # On entry, x is (N, T, idim)
         x = x.unsqueeze(1)  # (N, T, idim) -> (N, 1, T, idim) i.e., (N, C, H, W)
-        x = self.conv(x)
+        x = self.conv(x)  #torch.Size([10, 512, 499, 19])
         # Now x is of shape (N, odim, ((T-1)//2 - 1)//2, ((idim-1)//2 - 1)//2)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))

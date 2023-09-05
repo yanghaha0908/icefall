@@ -75,14 +75,14 @@ class Transformer(nn.Module):
             False to do nothing.
         """
         super().__init__()
-        self.use_feat_batchnorm = use_feat_batchnorm
+        self.use_feat_batchnorm = use_feat_batchnorm  #true
         assert isinstance(use_feat_batchnorm, (float, bool))
         if isinstance(use_feat_batchnorm, bool) and use_feat_batchnorm:
             self.feat_batchnorm = nn.BatchNorm1d(num_features)
 
-        self.num_features = num_features
-        self.num_classes = num_classes
-        self.subsampling_factor = subsampling_factor
+        self.num_features = num_features  #80
+        self.num_classes = num_classes  #500
+        self.subsampling_factor = subsampling_factor  #4
         if subsampling_factor != 4:
             raise NotImplementedError("Support only 'subsampling_factor=4'.")
 
@@ -93,8 +93,8 @@ class Transformer(nn.Module):
         #   (2) embedding: num_classes -> d_model
         if vgg_frontend:
             self.encoder_embed = VggSubsampling(num_features, d_model)
-        else:
-            self.encoder_embed = Conv2dSubsampling(num_features, d_model)
+        else:  #
+            self.encoder_embed = Conv2dSubsampling(num_features, d_model)  #num_features=80,
 
         self.encoder_pos = PositionalEncoding(d_model, dropout)
 
@@ -179,13 +179,14 @@ class Transformer(nn.Module):
               memory_key_padding_mask for the decoder. Its shape is (N, T).
               It is None if `supervision` is None.
         """
-        if isinstance(self.use_feat_batchnorm, bool) and self.use_feat_batchnorm:
+        if isinstance(self.use_feat_batchnorm, bool) and self.use_feat_batchnorm: #
             x = x.permute(0, 2, 1)  # (N, T, C) -> (N, C, T)
             x = self.feat_batchnorm(x)
             x = x.permute(0, 2, 1)  # (N, C, T) -> (N, T, C)
         if isinstance(self.use_feat_batchnorm, float):
-            x *= self.use_feat_batchnorm
-        encoder_memory, memory_key_padding_mask = self.run_encoder(x, supervision)
+            x *= self.use_feat_batchnorm   #torch.Size([10, 2000, 80])
+                
+        encoder_memory, memory_key_padding_mask = self.run_encoder(x, supervision)  #encoder_memory 就是conformer输出值  torch.Size([432, 11, 512]) #(499,10,512)
         x = self.ctc_output(encoder_memory)
         return x, encoder_memory, memory_key_padding_mask
 
@@ -212,7 +213,7 @@ class Transformer(nn.Module):
               The mask is None if `supervisions` is None.
               It is used as memory key padding mask in the decoder.
         """
-        x = self.encoder_embed(x)
+        x = self.encoder_embed(x)  #torch.Size([10, 2000, 80]) #Conv2dSubsampling
         x = self.encoder_pos(x)
         x = x.permute(1, 0, 2)  # (N, T, C) -> (T, N, C)
         mask = encoder_padding_mask(x.size(0), supervisions)
@@ -232,10 +233,10 @@ class Transformer(nn.Module):
           Return a tensor that can be used for CTC decoding.
           Its shape is (N, T, C)
         """
-        x = self.encoder_output_layer(x)
+        x = self.encoder_output_layer(x)   #dropout,linear(512,500)
         x = x.permute(1, 0, 2)  # (T, N, C) ->(N, T, C)
         x = nn.functional.log_softmax(x, dim=-1)  # (N, T, C)
-        return x
+        return x   #torch.Size([10, 499, 500])
 
     @torch.jit.export
     def decoder_forward(
@@ -840,7 +841,7 @@ def encoder_padding_mask(
     ).unsqueeze(-1)
     mask = seq_range_expand >= seq_length_expand
 
-    return mask
+    return mask #torch.Size([10, 499])
 
 
 def decoder_padding_mask(ys_pad: torch.Tensor, ignore_id: int = -1) -> torch.Tensor:

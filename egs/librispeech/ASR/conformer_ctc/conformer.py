@@ -115,7 +115,7 @@ class Conformer(Transformer):
             Tensor: Predictor tensor of dimension (input_length, batch_size, d_model).
             Tensor: Mask tensor of dimension (batch_size, input_length)
         """
-        x = self.encoder_embed(x)
+        x = self.encoder_embed(x)  #输入torch.Size([11, 1733, 80]) 输出torch.Size([11, 432, 512])  降采样4倍! 也做 公平比较
         x, pos_emb = self.encoder_pos(x)
         x = x.permute(1, 0, 2)  # (B, T, F) -> (T, B, F)
         mask = encoder_padding_mask(x.size(0), supervisions)
@@ -313,9 +313,9 @@ class ConformerEncoder(nn.TransformerEncoder):
         """
         output = src
 
-        for mod in self.layers:
-            output = mod(
-                output,
+        for mod in self.layers:  #12层  atten
+            output = mod(  #atten,F,F,conv
+                output,  #torch.Size([499, 10, 512])
                 pos_emb,
                 src_mask=mask,
                 src_key_padding_mask=src_key_padding_mask,
@@ -324,7 +324,7 @@ class ConformerEncoder(nn.TransformerEncoder):
         if self.norm is not None:
             output = self.norm(output)
 
-        return output
+        return output #(499,10,512)
 
 
 class RelPositionalEncoding(torch.nn.Module):
